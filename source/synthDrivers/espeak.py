@@ -107,19 +107,28 @@ class SynthDriver(SynthDriver):
 					# Close previous prosody tag.
 					textList.append("</prosody>")
 				attr=self.PROSODY_ATTRS[type(item)]
-				if item.multiplier==1:
+
+				# We decided it was safer to use offset rather, than a multiplier, to calculate the pitch value
+				# for speaking capital letters. The pitch for speaking capital letters is calculated using the
+				# pitch value set by the user and the CapPitchChange Percentage value. Since it is possible for
+				# the pitch set by the user to be zero, a ZeroDivisionError occurs when using a multiplier
+				# to calculate the pitch for speaking capital letters. Using offset for this calculation
+				# instead avoids this error as it involves no division.
+				if item.offset==0:
 					# Returning to normal.
 					try:
 						del prosody[attr]
 					except KeyError:
 						pass
 				else:
-					prosody[attr]=int(item.multiplier* 100)
+					prosody[attr]=int(item.offset)
 				if not prosody:
 					continue
 				textList.append("<prosody")
 				for attr,val in prosody.items():
-					textList.append(' %s="%d%%"'%(attr,val))
+					# Using relative offset
+					sign = "+" if val >= 0 else "-"
+					textList.append(f' {attr}="{val}{sign}"')
 				textList.append(">")
 			elif isinstance(item,speech.PhonemeCommand):
 				# We can't use str.translate because we want to reject unknown characters.
